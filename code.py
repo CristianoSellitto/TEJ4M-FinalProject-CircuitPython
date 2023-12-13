@@ -18,7 +18,7 @@ magtag.peripherals.speaker_disable = True
 
 # Add text on screen
 magtag.set_text("\ntext")
-magtag.peripherals.neopixels.brightness = 0.2
+magtag.peripherals.neopixels.brightness = 0.1
 magtag.peripherals.neopixels.fill((0, 255, 0))
 
 while True:
