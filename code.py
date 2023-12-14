@@ -1,11 +1,13 @@
 import time
 import ssl
+import json
+import math
+import wifi
 import alarm
 import board
 import socketpool
-import wifi
+import microcontroller
 import adafruit_requests
-import json
 from adafruit_magtag.magtag import MagTag
 
 # Add text display
@@ -24,14 +26,29 @@ magtag.peripherals.speaker_disable = True
 # Network SSH
 network_info = {
     'ssid' : 'Room212',
-    'password' : 'temp',
+    'password' : 'da',
 }
 
 # Connect to Wifi
 print("Attempting to connect to " + network_info["ssid"] + "...")
-wifi.radio.connect(network_info["ssid"], network_info["password"])
-print("Successfly connected to " + network_info["ssid"] + ".")
-print("IP address: ", wifi.radio.ipv4_address)
+try:
+    wifi.radio.connect(network_info["ssid"], network_info["password"])
+except:
+    print("Failed to connect to " + network_info["ssid"] + ".")
+    print("Restarting in 5...")
+    time.sleep(1)
+    print("Restarting in 4...")
+    time.sleep(1)
+    print("Restarting in 3...")
+    time.sleep(1)
+    print("Restarting in 2...")
+    time.sleep(1)
+    print("Restarting in 1...")
+    time.sleep(1)
+    microcontroller.reset()
+else:
+    print("Successfly connected to " + network_info["ssid"] + ".")
+    print("IP address: ", wifi.radio.ipv4_address)
 
 pool = socketpool.SocketPool(wifi.radio)
 requests = adafruit_requests.Session(pool, ssl.create_default_context())
@@ -39,12 +56,13 @@ requests = adafruit_requests.Session(pool, ssl.create_default_context())
 MOUNTAIN_URL = "https://mtnpowder.com/feed?resortId=4"
 mountain_info = requests.get(MOUNTAIN_URL)
 
-current_temp = mountain_info.json()["CurrentConditions"]["Base"]["TemperatureC"]
+current_temp = math.ceil(float(mountain_info.json()["CurrentConditions"]["Base"]["TemperatureC"]))
+current_chill = math.ceil(float(mountain_info.json()["CurrentConditions"]["Base"]["WindChillC"]))
 current_skies = mountain_info.json()["CurrentConditions"]["Base"]["Skies"]
 current_date = mountain_info.json()["Forecast"]["OneDay"]["date"]
 
 # Add text on screen
-magtag.set_text("\nWeather: " + current_temp + "ºC")
+magtag.set_text("\nVillage Info\nWeather: " + str(current_temp) + "°C\nWind Chill: " + str(current_chill) + "°C")
 magtag.peripherals.neopixels.brightness = 0.1
 magtag.peripherals.neopixels.fill((0, 255, 0))
 
