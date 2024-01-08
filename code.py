@@ -19,24 +19,26 @@ from adafruit_magtag.magtag import MagTag
 
 # Writes the current weather data to the screen
 def set_weather_data(place_name, temperature, wind_chill, skies, date, is_current_day):
+    # If the requested day is today...
     if is_current_day == True:
         magtag.set_text(
-            "\n" + str(place_name) + " (" + str(date) +
-            ")\nWeather: " + str(temperature) +
+            "\n" + str(place_name) + " on " + str(date) +
+            "\nWeather: " + str(temperature) +
             " C\nWind Chill: " + str(wind_chill) +
             " C\nSky: " + str(skies)
         )
+    # If the requested day is in the future...
     else:
         magtag.set_text(
-            "\n" + str(place_name) + " (" + str(date) +
-            ")\nHigh: " + str(temperature) +
+            "\n" + str(place_name) + " on " + str(date) +
+            "\nHigh: " + str(temperature) +
             " C\nLow: " + str(wind_chill) +
             " C\nSky: " + str(skies)
         )
 
 # Puts the device to a deep sleep
 def sleep_device():
-    # Sleep until the alarm goes off (if button D11 is pressed or after 3600 seconds (1 hour))
+    # Sleep until an alarm goes off (if button D11 (right button) is pressed or after 3600 seconds (1 hour))
     magtag.peripherals.deinit()
     pin_alarm = alarm.pin.PinAlarm(pin=board.D11, value=False, pull=True)
     time_alarm = alarm.time.TimeAlarm(monotonic_time=time.monotonic() + 3600)
@@ -92,6 +94,7 @@ try:
     MOUNTAIN_URL = "https://mtnpowder.com/feed?resortId=4"
     mountain_info = requests.get(MOUNTAIN_URL)
     # Prompt to select a day to request
+    timer = 1500
     day_requesting = 0
     magtag.set_text("\nPress up or down to\nselect a day.\nPress left to continue.")
     while True:
@@ -102,24 +105,30 @@ try:
         button_D12_pressed = magtag.peripherals.button_c_pressed
 
         # Change the day being requested if a button is pressed
-        if button_D15_pressed:
+        if button_D15_pressed or timer == 0:
+            # End loop if the left button is pressed or after 15 seconds
             break
         elif button_D14_pressed == True and day_requesting < 4:
             day_requesting = day_requesting + 1
             magtag.set_text("\nDay Requesting: +" + str(day_requesting))
+            print(day_requesting)
         elif button_D12_pressed == True and day_requesting > 0:
             day_requesting = day_requesting - 1
             magtag.set_text("\nDay Requesting: +" + str(day_requesting))
+            print(day_requesting)
+        magtag.peripherals.neopixels.brightness = timer / 100
+        timer = timer - 1
+        time.sleep(0.01)
     '''
     - weather_info Array Values -
 
     weather_info[0] = Temperature      (if weatherinfo[4] == True)
-    weather_info[1] = Wind Chill       (if weatherinfo[4] == True)
     weather_info[0] = High Temperature (if weatherinfo[4] == False)
+    weather_info[1] = Wind Chill       (if weatherinfo[4] == True)
     weather_info[1] = Low Temperature  (if weatherinfo[4] == False)
     weather_info[2] = Sky Condition
     weather_info[3] = Date
-    weather_info[4] = Is the day requested today?
+    weather_info[4] = Is the date requested the current date?
     '''
     magtag.peripherals.neopixels.brightness = 0.1
     magtag.peripherals.neopixels.fill((0, 255, 255))
@@ -134,8 +143,9 @@ try:
             True
         ]
     else:
-        # Request tomorrow's weather information
-        magtag.set_text("\nRequesting the weather\nfor " + str(day_requesting) + " day(s) in the\nfuture...")
+        # Request future weather information
+        magtag.set_text(
+            "\nRequesting the weather\nfor " + str(day_requesting) + " day(s) in the\nfuture...")
         # Can't use match case for this due to older Python version
         if day_requesting == 1:
             day_text = "TwoDay"
