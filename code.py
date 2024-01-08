@@ -144,8 +144,7 @@ try:
         ]
     else:
         # Request future weather information
-        magtag.set_text(
-            "\nRequesting the weather\nfor " + str(day_requesting) + " day(s) in the\nfuture...")
+        magtag.set_text("\nRequesting the weather\nfor " + str(day_requesting) + " day(s) in the\nfuture...")
         # Can't use match case for this due to older Python version
         if day_requesting == 1:
             day_text = "TwoDay"
