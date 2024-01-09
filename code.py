@@ -1,8 +1,9 @@
 '''
 - By Cristiano
-- Created December 2023
+- Created December 12th 2023
+- Modified January 2024
 
-This program writes the current weather in Mont Tremblant to a Adafruit MagTag
+This program writes the current or future weather information in Mont Tremblant to a Adafruit MagTag
 '''
 
 import time
@@ -17,7 +18,7 @@ import microcontroller
 import adafruit_requests
 from adafruit_magtag.magtag import MagTag
 
-# Writes the current weather data to the screen
+# Writes the requested weather data to the screen
 def set_weather_data(place_name, temperature, wind_chill, skies, date, is_current_day):
     # If the requested day is today...
     if is_current_day == True:
@@ -25,7 +26,7 @@ def set_weather_data(place_name, temperature, wind_chill, skies, date, is_curren
             "\n" + str(place_name) + " on " + str(date) +
             "\nWeather: " + str(temperature) +
             " C\nWind Chill: " + str(wind_chill) +
-            " C\nSky: " + str(skies)
+            " C\n" + str(skies)
         )
     # If the requested day is in the future...
     else:
@@ -33,10 +34,10 @@ def set_weather_data(place_name, temperature, wind_chill, skies, date, is_curren
             "\n" + str(place_name) + " on " + str(date) +
             "\nHigh: " + str(temperature) +
             " C\nLow: " + str(wind_chill) +
-            " C\nSky: " + str(skies)
+            " C\n" + str(skies)
         )
 
-# Puts the device to a deep sleep
+# Puts the device into the deep sleep mode
 def sleep_device():
     # Sleep until an alarm goes off (if button D11 (right button) is pressed or after 3600 seconds (1 hour))
     magtag.peripherals.deinit()
@@ -44,13 +45,13 @@ def sleep_device():
     time_alarm = alarm.time.TimeAlarm(monotonic_time=time.monotonic() + 3600)
     alarm.exit_and_deep_sleep_until_alarms(pin_alarm, time_alarm)
 
-# Add text display
+# Add MagTag library
 magtag = MagTag()
 
 # Disable unused features for battery saving
 magtag.peripherals.speaker_disable = True
 
-# Import Network SSH
+# Import Network SSH from secrets.py
 from secrets import secrets
 
 # Attempt to connect to Wi-Fi
@@ -90,34 +91,39 @@ try:
     # Begin request
     pool = socketpool.SocketPool(wifi.radio)
     requests = adafruit_requests.Session(pool, ssl.create_default_context())
-    # Request file
+    # Request the JSON file from the API
     MOUNTAIN_URL = "https://mtnpowder.com/feed?resortId=4"
     mountain_info = requests.get(MOUNTAIN_URL)
-    # Prompt to select a day to request
+    # Prompt the device to select a day to request
     timer = 1500
     day_requesting = 0
     magtag.set_text("\nPress up or down to\nselect a day.\nPress left to continue.")
     while True:
+        # Button variables
+        button_D15_pressed = magtag.peripherals.button_a_pressed # Left button
+        button_D14_pressed = magtag.peripherals.button_b_pressed # Up button
+        button_D12_pressed = magtag.peripherals.button_c_pressed # Down button
+
         # Set the colour of the LEDs to yellow
         magtag.peripherals.neopixels.fill((255, 255, 0))
-        button_D15_pressed = magtag.peripherals.button_a_pressed
-        button_D14_pressed = magtag.peripherals.button_b_pressed
-        button_D12_pressed = magtag.peripherals.button_c_pressed
 
         # Change the day being requested if a button is pressed
         if button_D15_pressed or timer == 0:
             # End loop if the left button is pressed or after 15 seconds
             break
         elif button_D14_pressed == True and day_requesting < 4:
+            # Add one day to request if the day being requested is less than 4
             day_requesting = day_requesting + 1
             magtag.set_text("\nDay Requesting: +" + str(day_requesting))
-            print(day_requesting)
         elif button_D12_pressed == True and day_requesting > 0:
+            # Subtract one day to request if the day being requested is greater than 0
             day_requesting = day_requesting - 1
             magtag.set_text("\nDay Requesting: +" + str(day_requesting))
-            print(day_requesting)
-        magtag.peripherals.neopixels.brightness = timer / 100
+        # Reduce the brightness of the timer as a way to see when time is about to run out
         timer = timer - 1
+        magtag.peripherals.neopixels.brightness = timer / 100
+        # Print the time remaining to the console
+        print(timer)
         time.sleep(0.01)
     '''
     - weather_info Array Values -
@@ -127,13 +133,13 @@ try:
     weather_info[1] = Wind Chill       (if weatherinfo[4] == True)
     weather_info[1] = Low Temperature  (if weatherinfo[4] == False)
     weather_info[2] = Sky Condition
-    weather_info[3] = Date
-    weather_info[4] = Is the date requested the current date?
+    weather_info[3] = Full Date        (YYYY-MM-DD)
+    weather_info[4] = Is the day being requested today?
     '''
     magtag.peripherals.neopixels.brightness = 0.1
     magtag.peripherals.neopixels.fill((0, 255, 255))
     if day_requesting == 0:
-        # Request today's weather information
+        # Request weather information for the current day
         magtag.set_text("\nRequesting the weather\nfor today...")
         weather_info = [
             math.ceil(float(mountain_info.json()["CurrentConditions"]["Base"]["TemperatureC"])),
@@ -143,10 +149,10 @@ try:
             True
         ]
     else:
-        # Request future weather information
-        magtag.set_text("\nRequesting the weather\nfor " + str(day_requesting) + " day(s) in the\nfuture...")
-        # Can't use match case for this due to older Python version
-        if day_requesting == 1:
+        # Request weather information for a day in the future
+        magtag.set_text(
+            "\nRequesting the weather\nfor " + str(day_requesting) + " day(s) in the\nfuture...")
+        if day_requesting == 1: # Can't use match case for this due to older Python version
             day_text = "TwoDay"
         elif day_requesting == 2:
             day_text = "ThreeDay"
@@ -170,7 +176,7 @@ except:
 # Set the colour of the LEDs to green
 magtag.peripherals.neopixels.fill((0, 255, 0))
 
-# Add text on screen
+# Put the weather data on the screen
 set_weather_data(
     "Village",
     weather_info[0],
