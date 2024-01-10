@@ -3,7 +3,7 @@
 - Created December 12th 2023
 - Modified January 2024
 
-This program writes the current or future weather information in Mont Tremblant to a Adafruit MagTag
+This program writes the current or future weather information in Mont Tremblant to an Adafruit MagTag
 '''
 
 import time
@@ -37,7 +37,7 @@ def set_weather_data(place_name, temperature, wind_chill, skies, date, is_curren
             " C\n" + str(skies)
         )
 
-# Puts the device into the deep sleep mode
+# Puts the device into a deep sleep
 def sleep_device():
     # Sleep until an alarm goes off (if button D11 (right button) is pressed or after 3600 seconds (1 hour))
     magtag.peripherals.deinit()
@@ -51,7 +51,7 @@ magtag = MagTag()
 # Disable unused features for battery saving
 magtag.peripherals.speaker_disable = True
 
-# Import Network SSH from secrets.py
+# Import network information from secrets.py
 from secrets import secrets
 
 # Attempt to connect to Wi-Fi
@@ -75,12 +75,13 @@ except:
     # Set the colour of the LEDs to red
     magtag.peripherals.neopixels.fill((255, 0, 0))
     magtag.set_text("\nError connecting to\n" + secrets["ssid"] + ".\nRestarting in 10 seconds.")
-    # Wait 10 seconds
+    # Wait for 10 seconds
     time.sleep(10)
     # Reset program
     microcontroller.reset()
 else:
-    print("Successfly connected to " + secrets["ssid"] + ".")
+    # Print IP information to console
+    print("Successfully connected to " + secrets["ssid"] + ".")
     print("IP address: ", wifi.radio.ipv4_address)
 
 # Get Mount Tremblant Weather JSON file
@@ -95,8 +96,8 @@ try:
     MOUNTAIN_URL = "https://mtnpowder.com/feed?resortId=4"
     mountain_info = requests.get(MOUNTAIN_URL)
     # Prompt the device to select a day to request
-    timer = 1500
-    day_requesting = 0
+    timer = 1500       # Time to select a day (15 seconds)
+    day_requesting = 0 # The number of days in the future
     magtag.set_text("\nPress up or down to\nselect a day.\nPress left to continue.")
     while True:
         # Button variables
@@ -106,6 +107,29 @@ try:
 
         # Set the colour of the LEDs to yellow
         magtag.peripherals.neopixels.fill((255, 255, 0))
+        # Reduce the brightness of the timer as a way to see when time is about to run out
+        if timer == 1500: # Can't use match case for this due to older Python version
+            magtag.peripherals.neopixels.brightness = 1
+        elif timer == 1350:
+            magtag.peripherals.neopixels.brightness = 0.9
+        elif timer == 1350:
+            magtag.peripherals.neopixels.brightness = 0.8
+        elif timer == 1200:
+            magtag.peripherals.neopixels.brightness = 0.7
+        elif timer == 1050:
+            magtag.peripherals.neopixels.brightness = 0.6
+        elif timer == 900:
+            magtag.peripherals.neopixels.brightness = 0.5
+        elif timer == 750:
+            magtag.peripherals.neopixels.brightness = 0.4
+        elif timer == 600:
+            magtag.peripherals.neopixels.brightness = 0.3
+        elif timer == 450:
+            magtag.peripherals.neopixels.brightness = 0.2
+        elif timer == 300:
+            magtag.peripherals.neopixels.brightness = 0.1
+        elif timer == 150:
+            magtag.peripherals.neopixels.brightness = 0
 
         # Change the day being requested if a button is pressed
         if button_D15_pressed or timer == 0:
@@ -119,22 +143,22 @@ try:
             # Subtract one day to request if the day being requested is greater than 0
             day_requesting = day_requesting - 1
             magtag.set_text("\nDay Requesting: +" + str(day_requesting))
-        # Reduce the brightness of the timer as a way to see when time is about to run out
-        timer = timer - 1
-        magtag.peripherals.neopixels.brightness = timer / 100
         # Print the time remaining to the console
+        timer = timer - 1
         print(timer)
         time.sleep(0.01)
     '''
     - weather_info Array Values -
+
+    ~ All temperatures are in degrees Celsius
 
     weather_info[0] = Temperature      (if weatherinfo[4] == True)
     weather_info[0] = High Temperature (if weatherinfo[4] == False)
     weather_info[1] = Wind Chill       (if weatherinfo[4] == True)
     weather_info[1] = Low Temperature  (if weatherinfo[4] == False)
     weather_info[2] = Sky Condition
-    weather_info[3] = Full Date        (YYYY-MM-DD)
-    weather_info[4] = Is the day being requested today?
+    weather_info[3] = Full Date                         (YYYY-MM-DD)
+    weather_info[4] = Is the day being requested today? (True or False)
     '''
     magtag.peripherals.neopixels.brightness = 0.1
     magtag.peripherals.neopixels.fill((0, 255, 255))
@@ -152,7 +176,7 @@ try:
         # Request weather information for a day in the future
         magtag.set_text(
             "\nRequesting the weather\nfor " + str(day_requesting) + " day(s) in the\nfuture...")
-        if day_requesting == 1: # Can't use match case for this due to older Python version
+        if day_requesting == 1:
             day_text = "TwoDay"
         elif day_requesting == 2:
             day_text = "ThreeDay"
@@ -169,14 +193,17 @@ try:
         ]
 except:
     magtag.peripherals.neopixels.fill((255, 0, 0))
-    magtag.set_text("\nError obtaining the\nweather.\nRestarting in 10 seconds.")
+    magtag.set_text("\nError requesting the\nweather.\nRestarting in 10 seconds.")
     time.sleep(10)
     microcontroller.reset()
+
+# End Wi-Fi connection
+wifi.radio.enabled = False
 
 # Set the colour of the LEDs to green
 magtag.peripherals.neopixels.fill((0, 255, 0))
 
-# Put the weather data on the screen
+# Write the weather data to the screen
 set_weather_data(
     "Village",
     weather_info[0],
@@ -186,6 +213,6 @@ set_weather_data(
     weather_info[4]
 )
 
-# Sleep after 15 seconds
+# Go to sleep after 15 seconds
 time.sleep(15)
 sleep_device()
