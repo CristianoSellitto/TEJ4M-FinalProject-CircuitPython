@@ -72,7 +72,7 @@ def request_weather_data(selected_day):
     magtag.peripherals.neopixels.fill((0, 255, 255))
     if selected_day == 0:
         # Request weather information for the current day
-        magtag.set_text("\nRetriving the weather\nfor today...")
+        magtag.set_text("\nRetrieving the weather\nfor today...")
         weather_info = [
             math.ceil(float(mountain_info.json()["CurrentConditions"]["Base"]["TemperatureC"])),
             math.ceil(float(mountain_info.json()["CurrentConditions"]["Base"]["WindChillC"])),
@@ -83,7 +83,7 @@ def request_weather_data(selected_day):
     else:
         # Request weather information for a day in the future
         magtag.set_text(
-            "\nRetriving the weather\nfor " + str(selected_day) + " day(s) in the\nfuture...")
+            "\nRetrieving the weather\nfor " + str(selected_day) + " day(s) in the\nfuture...")
         if selected_day == 1:
             day_text = "TwoDay"
         elif selected_day == 2:
