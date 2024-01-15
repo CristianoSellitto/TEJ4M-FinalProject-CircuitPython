@@ -21,87 +21,27 @@ from adafruit_magtag.magtag import MagTag
 # Reduce the brightness of the LEDs as a way to see when a timer is about to run out
 def led_brightness_timer(timer):
     if timer == 1500: # Can't use match case for this due to older Python version
-        magtag.peripherals.neopixels.brightness = 1
-    elif timer == 1350:
-        magtag.peripherals.neopixels.brightness = 0.9
-    elif timer == 1350:
-        magtag.peripherals.neopixels.brightness = 0.8
-    elif timer == 1200:
-        magtag.peripherals.neopixels.brightness = 0.7
-    elif timer == 1050:
-        magtag.peripherals.neopixels.brightness = 0.6
-    elif timer == 900:
-        magtag.peripherals.neopixels.brightness = 0.5
-    elif timer == 750:
-        magtag.peripherals.neopixels.brightness = 0.4
-    elif timer == 600:
         magtag.peripherals.neopixels.brightness = 0.3
-    elif timer == 450:
+    elif timer == 1350:
+        magtag.peripherals.neopixels.brightness = 0.275
+    elif timer == 1350:
+        magtag.peripherals.neopixels.brightness = 0.25
+    elif timer == 1200:
+        magtag.peripherals.neopixels.brightness = 0.225
+    elif timer == 1050:
         magtag.peripherals.neopixels.brightness = 0.2
-    elif timer == 300:
+    elif timer == 900:
+        magtag.peripherals.neopixels.brightness = 0.175
+    elif timer == 750:
+        magtag.peripherals.neopixels.brightness = 0.15
+    elif timer == 600:
+        magtag.peripherals.neopixels.brightness = 0.125
+    elif timer == 450:
         magtag.peripherals.neopixels.brightness = 0.1
+    elif timer == 300:
+        magtag.peripherals.neopixels.brightness = 0.075
     elif timer == 150:
-        magtag.peripherals.neopixels.brightness = 0.01
-
-# Get Mount Tremblant Weather information
-def request_weather_data(selected_day):
-    # Set the colour of the LEDs to purple
-    magtag.peripherals.neopixels.brightness = 0.1
-    magtag.peripherals.neopixels.fill((255, 0, 255))
-    # Begin request
-    pool = socketpool.SocketPool(wifi.radio)
-    requests = adafruit_requests.Session(pool, ssl.create_default_context())
-    # Request the JSON file from the API
-    MOUNTAIN_URL = "https://mtnpowder.com/feed?resortId=4"
-    mountain_info = requests.get(MOUNTAIN_URL)
-    '''
-    - weather_info Array Values -
-
-    ~ All temperatures are in degrees Celsius
-
-    weather_info[0] = Temperature      (if weatherinfo[4] == True)
-    weather_info[0] = High Temperature (if weatherinfo[4] == False)
-    weather_info[1] = Wind Chill       (if weatherinfo[4] == True)
-    weather_info[1] = Low Temperature  (if weatherinfo[4] == False)
-    weather_info[2] = Sky Condition
-    weather_info[3] = Full Date                         (YYYY-MM-DD)
-    weather_info[4] = Is the day being requested today? (True or False)
-    '''
-    # Set the colour of the LEDs to light blue
-    magtag.peripherals.neopixels.brightness = 0.1
-    magtag.peripherals.neopixels.fill((0, 255, 255))
-    if selected_day == 0:
-        # Request weather information for the current day
-        magtag.set_text("\nRetrieving the weather\nfor today...")
-        weather_info = [
-            math.ceil(float(mountain_info.json()["CurrentConditions"]["Base"]["TemperatureC"])),
-            math.ceil(float(mountain_info.json()["CurrentConditions"]["Base"]["WindChillC"])),
-            mountain_info.json()["CurrentConditions"]["Base"]["Skies"],
-            mountain_info.json()["Forecast"]["OneDay"]["date"],
-            True
-        ]
-    else:
-        # Request weather information for a day in the future
-        magtag.set_text(
-            "\nRetrieving the weather\nfor " + str(selected_day) + " day(s) in the\nfuture...")
-        if selected_day == 1:
-            day_text = "TwoDay"
-        elif selected_day == 2:
-            day_text = "ThreeDay"
-        elif selected_day == 3:
-            day_text = "FourDay"
-        elif selected_day == 4:
-            day_text = "FiveDay"
-        weather_info = [
-            math.ceil(float(mountain_info.json()["Forecast"][day_text]["temp_high_c"])),
-            math.ceil(float(mountain_info.json()["Forecast"][day_text]["temp_low_c"])),
-            mountain_info.json()["Forecast"][day_text]["skies"],
-            mountain_info.json()["Forecast"][day_text]["date"],
-            False
-        ]
-    
-    # Return the weather data requested
-    return weather_info
+        magtag.peripherals.neopixels.brightness = 0.05
 
 # Select a day's weather data to request
 def select_day(timer, selected_day):
@@ -150,25 +90,142 @@ def select_day(timer, selected_day):
         time.sleep(10)
         microcontroller.reset()
 
+# Get Mount Tremblant Weather information
+def request_weather_data(selected_day, page):
+    # Set the colour of the LEDs to purple
+    magtag.peripherals.neopixels.brightness = 0.3
+    magtag.peripherals.neopixels.fill((255, 0, 255))
+    # Begin request
+    pool = socketpool.SocketPool(wifi.radio)
+    requests = adafruit_requests.Session(pool, ssl.create_default_context())
+    # Request the JSON file from the API
+    MOUNTAIN_URL = "https://mtnpowder.com/feed?resortId=4"
+    mountain_info = requests.get(MOUNTAIN_URL)
+    # Set the colour of the LEDs to light blue
+    magtag.peripherals.neopixels.brightness = 0.3
+    magtag.peripherals.neopixels.fill((0, 255, 255))
+    if selected_day == 0:
+        # Request weather information for the current day
+        magtag.set_text("\nRetrieving the weather\nfor today (Page " + str(page + 1) + ")...")
+        if page == 0:
+            # Request weather info for page 0
+            weather_info = [
+                True,
+                mountain_info.json()["Forecast"]["OneDay"]["date"],
+                math.ceil(float(mountain_info.json()["CurrentConditions"]["Base"]["TemperatureC"])),
+                math.ceil(float(mountain_info.json()["CurrentConditions"]["Base"]["WindChillC"])),
+                mountain_info.json()["CurrentConditions"]["Base"]["Skies"],
+                None,
+                None
+            ]
+        elif page == 1:
+            # Request weather info for page 1
+            weather_info = [
+                True,
+                mountain_info.json()["Forecast"]["OneDay"]["date"],
+                int(mountain_info.json()["SnowReport"]["TotalOpenTrails"]),
+                int(mountain_info.json()["SnowReport"]["TotalTrails"]),
+                int(mountain_info.json()["SnowReport"]["TotalOpenLifts"]),
+                int(mountain_info.json()["SnowReport"]["TotalLifts"]),
+                math.floor(
+                    (
+                        float(mountain_info.json()["SnowReport"]["OpenTerrainHectares"]) /
+                        float(mountain_info.json()["SnowReport"]["TotalTerrainHectares"])
+                    ) * 100
+                )
+            ]
+    else:
+        # Request weather information for a day in the future
+        magtag.set_text(
+            "\nRetrieving the weather\nfor " +
+            str(selected_day) + " day(s) in the\nfuture (Page " + str(page + 1) + ")..."
+        )
+        if selected_day == 1:
+            day_text = "TwoDay"
+        elif selected_day == 2:
+            day_text = "ThreeDay"
+        elif selected_day == 3:
+            day_text = "FourDay"
+        elif selected_day == 4:
+            day_text = "FiveDay"
+        if page == 0:
+            weather_info = [
+                False,
+                mountain_info.json()["Forecast"][day_text]["date"],
+                math.ceil(float(mountain_info.json()["Forecast"][day_text]["temp_high_c"])),
+                math.ceil(float(mountain_info.json()["Forecast"][day_text]["temp_low_c"])),
+                mountain_info.json()["Forecast"][day_text]["skies"],
+                None,
+                None
+            ]
+        elif page == 1:
+            print("test")
+    
+    # Return the weather data requested
+    return weather_info
+
 # Writes the requested weather data to the screen
-def set_weather_data(place_name, temperature, wind_chill, skies, date, is_current_day):
+def set_weather_data(page, is_current_day, date, data_one, data_two, data_three, data_four, data_five):
     # Set the colour of the LEDs to green
     magtag.peripherals.neopixels.fill((0, 255, 0))
-    # If the requested day is today...
-    if is_current_day == True:
+    '''
+    - Page information -
+
+    Pages display different pieces of the total weather data for a day as strings
+
+    Formatted as {today}/{future} or {all}
+    Ex. One/Two, Three
+    One is info for today and Two is info for the future, while three is info for all days
+
+    weather_info[0] = is_current_day
+    weather_info[1] = date
+    weather_info[2] = data_one
+    weather_info[3] = data_two
+    weather_info[4] = data_three
+    weather_info[5] = data_four
+    weather_info[6] = data_five
+
+    All Pages:
+        page = Requested Page Number (int)
+        date = Full Date as YYYY-MM-DD
+        is_current_day = Is the day requested today? (boolean)
+
+    Page 0:
+        data_one = Weather/High
+        data_two = Wind Chill/Low
+        data_three = Skies
+
+    Page 1:
+        data_one = Total Open Trails
+        data_two = Total Trails
+        data_three = Total Open Lifts
+        data_four = Open Lifts
+        data_five = Open Terrain Percent
+    '''
+
+    # Page 1 for today
+    if page == 1 and is_current_day == True:
         magtag.set_text(
-            "\n" + str(place_name) + " on " + str(date) +
-            "\nWeather: " + str(temperature) +
-            " C\nWind Chill: " + str(wind_chill) +
-            " C\n" + str(skies)
+            "\nPage " + str(page + 1) + " on " + str(date) +
+            "\nTrails: " + str(data_one) + "/" + str(data_two) +
+            "\nLifts: " + str(data_three) + "/" + str(data_four) +
+            "\nOpen Terrain: " + str(data_five) + "%"
         )
-    # If the requested day is in the future...
+    # Page 0 for today
+    elif page == 0 and is_current_day == True:
+        magtag.set_text(
+            "\nPage " + str(page + 1) + " on " + str(date) +
+            "\nWeather: " + str(data_one) +
+            " C\nWind Chill: " + str(data_two) +
+            " C\n" + str(data_three)
+        )
+    # Page 0 for future days
     else:
         magtag.set_text(
-            "\n" + str(place_name) + " on " + str(date) +
-            "\nHigh: " + str(temperature) +
-            " C\nLow: " + str(wind_chill) +
-            " C\n" + str(skies)
+            "\nPage " + str(page + 1) + " on " + str(date) +
+            "\nHigh: " + str(data_one) +
+            " C\nLow: " + str(data_two) +
+            " C\n" + str(data_three)
         )
 
 # Puts the device into a deep sleep
@@ -199,7 +256,7 @@ try:
             text_scale=1.5,
     )
     # Turn LEDS on and set the colour to blue
-    magtag.peripherals.neopixels.brightness = 0.1
+    magtag.peripherals.neopixels.brightness = 0.3
     magtag.peripherals.neopixels.fill((0, 0, 255))
     # Set text to the screen 
     magtag.set_text("\nConnecting to\n" + secrets["ssid"] + "...")
@@ -222,16 +279,19 @@ else:
 requested_day = select_day(1500, 0)
 
 # Request weather data for that day
-weather_data = request_weather_data(requested_day)
+current_page = 0
+weather_data = request_weather_data(requested_day, current_page)
 
 # Write the weather data to the screen
 set_weather_data(
-    "Village",
+    current_page,
     weather_data[0],
     weather_data[1],
     weather_data[2],
     weather_data[3],
-    weather_data[4]
+    weather_data[4],
+    weather_data[5],
+    weather_data[6]
 )
 
 # Check when buttons are pressed, and turn off if no inputs are read for a while
@@ -239,6 +299,8 @@ timer = 1500
 while True:
     # Button variable
     button_D15_pressed = magtag.peripherals.button_a_pressed # Left button
+    button_D14_pressed = magtag.peripherals.button_b_pressed # Up button
+    button_D12_pressed = magtag.peripherals.button_c_pressed # Down button
 
     led_brightness_timer(timer)
 
@@ -248,16 +310,48 @@ while True:
     elif button_D15_pressed == True:
         # Request a weather data change if the left button is pressed
         requested_day = select_day(1500, requested_day)
-        weather_data = request_weather_data(requested_day)
+        weather_data = request_weather_data(requested_day, current_page)
         set_weather_data(
-            "Village",
+            current_page,
             weather_data[0],
             weather_data[1],
             weather_data[2],
             weather_data[3],
-            weather_data[4]
+            weather_data[4],
+            weather_data[5],
+            weather_data[6]
         )
         # Restart timer
+        timer = 1500
+    elif button_D14_pressed and current_page < 1 and requested_day == 0:
+        # Request a higher page if the current page is less than 1 and the requested day is today
+        current_page = current_page + 1
+        weather_data = request_weather_data(requested_day, current_page)
+        set_weather_data(
+            current_page,
+            weather_data[0],
+            weather_data[1],
+            weather_data[2],
+            weather_data[3],
+            weather_data[4],
+            weather_data[5],
+            weather_data[6]
+        )
+        timer = 1500
+    elif button_D12_pressed and current_page > 0 and requested_day == 0:
+        # Request a lower page if the current page is more than 0 and the requested day is today
+        current_page = current_page - 1
+        weather_data = request_weather_data(requested_day, current_page)
+        set_weather_data(
+            current_page,
+            weather_data[0],
+            weather_data[1],
+            weather_data[2],
+            weather_data[3],
+            weather_data[4],
+            weather_data[5],
+            weather_data[6]
+        )
         timer = 1500
 
     timer = timer - 1
