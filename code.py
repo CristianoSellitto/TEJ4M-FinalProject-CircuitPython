@@ -149,6 +149,7 @@ def request_weather_data(selected_day, page):
         elif selected_day == 4:
             day_text = "FiveDay"
         if page == 0:
+            # Request weather info for page 0
             weather_info = [
                 False,
                 mountain_info.json()["Forecast"][day_text]["date"],
@@ -159,7 +160,16 @@ def request_weather_data(selected_day, page):
                 None
             ]
         elif page == 1:
-            print("test")
+            # Request weather info for page 1
+            weather_info = [
+                False,
+                mountain_info.json()["Forecast"][day_text]["date"],
+                mountain_info.json()["Forecast"][day_text]["forecasted_snow_cm"],
+                mountain_info.json()["Forecast"][day_text]["avewind"]["kph"],
+                mountain_info.json()["Forecast"][day_text]["avewind"]["dir"],
+                None,
+                None
+            ]
     
     # Return the weather data requested
     return weather_info
@@ -169,13 +179,10 @@ def set_weather_data(page, is_current_day, date, data_one, data_two, data_three,
     # Set the colour of the LEDs to green
     magtag.peripherals.neopixels.fill((0, 255, 0))
     '''
-    - Page information -
+    - Page and Weather Data Information -
 
     Pages display different pieces of the total weather data for a day as strings
-
-    Formatted as {today}/{future} or {all}
-    Ex. One/Two, Three
-    One is info for today and Two is info for the future, while three is info for all days
+    Pages are always shown on the display as one page higher 
 
     weather_info[0] = is_current_day
     weather_info[1] = date
@@ -185,36 +192,49 @@ def set_weather_data(page, is_current_day, date, data_one, data_two, data_three,
     weather_info[5] = data_four
     weather_info[6] = data_five
 
+    Formatted as {today} | {future} or {all}
+    Ex. data_one = One | Two
+        data_two = Three
+    One is info for today and Two is info for future days, while Three is info for all days
+
     All Pages:
-        page = Requested Page Number (int)
+        page = Requested Page Number
         date = Full Date as YYYY-MM-DD
-        is_current_day = Is the day requested today? (boolean)
+        is_current_day = Is the day requested today? (bool)
 
     Page 0:
-        data_one = Weather/High
-        data_two = Wind Chill/Low
-        data_three = Skies
+        data_one = Weather    | High
+        data_two = Wind Chill | Low
+        data_three = Sky Condition
 
     Page 1:
-        data_one = Total Open Trails
-        data_two = Total Trails
-        data_three = Total Open Lifts
-        data_four = Open Lifts
-        data_five = Open Terrain Percent
+        data_one = Total Open Trails     | Forecasted Snowfall (cm)
+        data_two = Total Trails          | Wind Speed (km/h)
+        data_three = Total Open Lifts    | Wind Direction
+        data_four = Open Lifts           | No Data
+        data_five = Open Terrain Percent | No Data
     '''
 
     # Page 1 for today
     if page == 1 and is_current_day == True:
         magtag.set_text(
-            "\nPage " + str(page + 1) + " on " + str(date) +
+            "\nPage " + str(page + 1) + " for " + str(date) +
             "\nTrails: " + str(data_one) + "/" + str(data_two) +
             "\nLifts: " + str(data_three) + "/" + str(data_four) +
             "\nOpen Terrain: " + str(data_five) + "%"
         )
+    # Page 1 for future days
+    elif page == 1 and is_current_day == False:
+        magtag.set_text(
+            "\nPage " + str(page + 1) + " for " + str(date) +
+            "\nSnowfall: " + str(data_one) + " cm" +
+            "\nWind Speed: " + str(data_two) +
+            "\nWind Direction: " + str(data_three)
+        )
     # Page 0 for today
     elif page == 0 and is_current_day == True:
         magtag.set_text(
-            "\nPage " + str(page + 1) + " on " + str(date) +
+            "\nPage " + str(page + 1) + " for " + str(date) +
             "\nWeather: " + str(data_one) +
             " C\nWind Chill: " + str(data_two) +
             " C\n" + str(data_three)
@@ -222,7 +242,7 @@ def set_weather_data(page, is_current_day, date, data_one, data_two, data_three,
     # Page 0 for future days
     else:
         magtag.set_text(
-            "\nPage " + str(page + 1) + " on " + str(date) +
+            "\nPage " + str(page + 1) + " for " + str(date) +
             "\nHigh: " + str(data_one) +
             " C\nLow: " + str(data_two) +
             " C\n" + str(data_three)
@@ -278,7 +298,7 @@ else:
 # Select a day to request
 requested_day = select_day(1500, 0)
 
-# Request weather data for that day
+# Request page 0's weather data for the requested day
 current_page = 0
 weather_data = request_weather_data(requested_day, current_page)
 
@@ -323,8 +343,8 @@ while True:
         )
         # Restart timer
         timer = 1500
-    elif button_D14_pressed and current_page < 1 and requested_day == 0:
-        # Request a higher page if the current page is less than 1 and the requested day is today
+    elif button_D14_pressed and current_page < 1:
+        # Request a higher page if the current page is less than 1
         current_page = current_page + 1
         weather_data = request_weather_data(requested_day, current_page)
         set_weather_data(
@@ -338,8 +358,8 @@ while True:
             weather_data[6]
         )
         timer = 1500
-    elif button_D12_pressed and current_page > 0 and requested_day == 0:
-        # Request a lower page if the current page is more than 0 and the requested day is today
+    elif button_D12_pressed and current_page > 0:
+        # Request a lower page if the current page is more than 0
         current_page = current_page - 1
         weather_data = request_weather_data(requested_day, current_page)
         set_weather_data(
