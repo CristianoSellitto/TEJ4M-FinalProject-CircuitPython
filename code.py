@@ -39,9 +39,9 @@ def led_brightness_timer(timer):
     elif timer == 450:
         magtag.peripherals.neopixels.brightness = 0.1
     elif timer == 300:
-        magtag.peripherals.neopixels.brightness = 0.075
-    elif timer == 150:
         magtag.peripherals.neopixels.brightness = 0.05
+    elif timer == 150:
+        magtag.peripherals.neopixels.brightness = 0.01
 
 # Select a day's weather data to request
 def select_day(timer, selected_day):
@@ -90,56 +90,75 @@ def select_day(timer, selected_day):
         time.sleep(10)
         microcontroller.reset()
 
-# Get Mount Tremblant Weather information
-def request_weather_data(selected_day, page):
-    # Set the colour of the LEDs to purple
-    magtag.peripherals.neopixels.brightness = 0.3
-    magtag.peripherals.neopixels.fill((255, 0, 255))
-    # Begin request
-    pool = socketpool.SocketPool(wifi.radio)
-    requests = adafruit_requests.Session(pool, ssl.create_default_context())
-    # Request the JSON file from the API
-    MOUNTAIN_URL = "https://mtnpowder.com/feed?resortId=4"
-    mountain_info = requests.get(MOUNTAIN_URL)
+# Requests a JSON file from a URL
+def get_json_url(mountain_url):
     # Set the colour of the LEDs to light blue
     magtag.peripherals.neopixels.brightness = 0.3
     magtag.peripherals.neopixels.fill((0, 255, 255))
+    # Begin request
+    magtag.set_text("\nRequesting weather\ndata...")
+    pool = socketpool.SocketPool(wifi.radio)
+    requests = adafruit_requests.Session(pool, ssl.create_default_context())
+    # Request the JSON file from the API
+    mountain_info = requests.get(mountain_url)
+    # Return the JSON file
+    return mountain_info
+
+# Get Mount Tremblant Weather information
+def request_weather_data(selected_day, page, json_file, is_first_request):
+    # Set the colour of the LEDs to purple
+    magtag.peripherals.neopixels.brightness = 0.3
+    magtag.peripherals.neopixels.fill((255, 0, 255))
     if selected_day == 0:
         # Request weather information for the current day
-        magtag.set_text("\nRetrieving the weather\nfor today (Page " + str(page + 1) + ")...")
+        if is_first_request == True:
+            # Only show the request text if this request is the first one, as the first request is slow
+            magtag.set_text("\nRetrieving the weather\nfor today (Page " + str(page + 1) + ")...")
         if page == 0:
-            # Request weather info for page 0
+            # Request today's weather info for page 0
             weather_info = [
                 True,
-                mountain_info.json()["Forecast"]["OneDay"]["date"],
-                math.ceil(float(mountain_info.json()["CurrentConditions"]["Base"]["TemperatureC"])),
-                math.ceil(float(mountain_info.json()["CurrentConditions"]["Base"]["WindChillC"])),
-                mountain_info.json()["CurrentConditions"]["Base"]["Skies"],
+                json_file.json()["Forecast"]["OneDay"]["date"],
+                math.ceil(float(json_file.json()["CurrentConditions"]["Base"]["TemperatureC"])),
+                math.ceil(float(json_file.json()["CurrentConditions"]["Base"]["WindChillC"])),
+                json_file.json()["CurrentConditions"]["Base"]["Skies"],
                 None,
                 None
             ]
         elif page == 1:
-            # Request weather info for page 1
+            # Request today's weather info for page 1
             weather_info = [
                 True,
-                mountain_info.json()["Forecast"]["OneDay"]["date"],
-                int(mountain_info.json()["SnowReport"]["TotalOpenTrails"]),
-                int(mountain_info.json()["SnowReport"]["TotalTrails"]),
-                int(mountain_info.json()["SnowReport"]["TotalOpenLifts"]),
-                int(mountain_info.json()["SnowReport"]["TotalLifts"]),
-                math.floor(
+                json_file.json()["Forecast"]["OneDay"]["date"],
+                json_file.json()["SnowReport"]["TotalOpenTrails"],
+                json_file.json()["SnowReport"]["TotalTrails"],
+                json_file.json()["SnowReport"]["TotalOpenLifts"],
+                json_file.json()["SnowReport"]["TotalLifts"],
+                math.ceil(
                     (
-                        float(mountain_info.json()["SnowReport"]["OpenTerrainHectares"]) /
-                        float(mountain_info.json()["SnowReport"]["TotalTerrainHectares"])
+                        float(json_file.json()["SnowReport"]["OpenTerrainHectares"]) /
+                        float(json_file.json()["SnowReport"]["TotalTerrainHectares"])
                     ) * 100
                 )
             ]
+        elif page == 2:
+            # Request today's weather info for page 2
+            weather_info = [
+                True,
+                json_file.json()["Forecast"]["OneDay"]["date"],
+                json_file.json()["SnowReport"]["TotalOpenParks"],
+                json_file.json()["SnowReport"]["TotalParks"],
+                json_file.json()["SnowReport"]["SeasonTotalCm"],
+                json_file.json()["SnowReport"]["BaseArea"]["Last48HoursCm"],
+                None
+            ]
     else:
         # Request weather information for a day in the future
-        magtag.set_text(
-            "\nRetrieving the weather\nfor " +
-            str(selected_day) + " day(s) in the\nfuture (Page " + str(page + 1) + ")..."
-        )
+        if is_first_request == True:
+            magtag.set_text(
+                "\nRetrieving the weather\nfor " +
+                str(selected_day) + " day(s) in the\nfuture (Page " + str(page + 1) + ")..."
+            )
         if selected_day == 1:
             day_text = "TwoDay"
         elif selected_day == 2:
@@ -149,24 +168,24 @@ def request_weather_data(selected_day, page):
         elif selected_day == 4:
             day_text = "FiveDay"
         if page == 0:
-            # Request weather info for page 0
+            # Request future weather info for page 0
             weather_info = [
                 False,
-                mountain_info.json()["Forecast"][day_text]["date"],
-                math.ceil(float(mountain_info.json()["Forecast"][day_text]["temp_high_c"])),
-                math.ceil(float(mountain_info.json()["Forecast"][day_text]["temp_low_c"])),
-                mountain_info.json()["Forecast"][day_text]["skies"],
+                json_file.json()["Forecast"][day_text]["date"],
+                math.ceil(float(json_file.json()["Forecast"][day_text]["temp_high_c"])),
+                math.ceil(float(json_file.json()["Forecast"][day_text]["temp_low_c"])),
+                json_file.json()["Forecast"][day_text]["skies"],
                 None,
                 None
             ]
         elif page == 1:
-            # Request weather info for page 1
+            # Request future weather info for page 1
             weather_info = [
                 False,
-                mountain_info.json()["Forecast"][day_text]["date"],
-                mountain_info.json()["Forecast"][day_text]["forecasted_snow_cm"],
-                mountain_info.json()["Forecast"][day_text]["avewind"]["kph"],
-                mountain_info.json()["Forecast"][day_text]["avewind"]["dir"],
+                json_file.json()["Forecast"][day_text]["date"],
+                json_file.json()["Forecast"][day_text]["forecasted_snow_cm"],
+                json_file.json()["Forecast"][day_text]["avewind"]["kph"],
+                json_file.json()["Forecast"][day_text]["avewind"]["dir"],
                 None,
                 None
             ]
@@ -211,12 +230,26 @@ def set_weather_data(page, is_current_day, date, data_one, data_two, data_three,
         data_one = Total Open Trails     | Forecasted Snowfall (cm)
         data_two = Total Trails          | Wind Speed (km/h)
         data_three = Total Open Lifts    | Wind Direction
-        data_four = Open Lifts           | No Data
-        data_five = Open Terrain Percent | No Data
+        data_four = Open Lifts           | None
+        data_five = Open Terrain Percent | None
+
+    Page 2:
+        data_one = Total Open Parks                | Non-existant
+        data_two = Total Parks                     | Non-existant
+        data_three = Season Total Snow (cm)        | Non-existant
+        data_four = Snow in the Last 48 Hours (cm) | Non-existant
     '''
 
+    # Page 2 for today
+    if page == 2 and is_current_day == True:
+        magtag.set_text(
+            "\nPage " + str(page + 1) + " for " + str(date) +
+            "\nParks: " + str(data_one) + "/" + str(data_two) +
+            "\nSeason Total: " + str(data_three) + " cm" +
+            "\n48 Hour: " + str(data_four) + " cm"
+        )
     # Page 1 for today
-    if page == 1 and is_current_day == True:
+    elif page == 1 and is_current_day == True:
         magtag.set_text(
             "\nPage " + str(page + 1) + " for " + str(date) +
             "\nTrails: " + str(data_one) + "/" + str(data_two) +
@@ -239,7 +272,7 @@ def set_weather_data(page, is_current_day, date, data_one, data_two, data_three,
             " C\nWind Chill: " + str(data_two) +
             " C\n" + str(data_three)
         )
-    # Page 0 for future days
+    # Page 0 for future days (default)
     else:
         magtag.set_text(
             "\nPage " + str(page + 1) + " for " + str(date) +
@@ -295,12 +328,19 @@ else:
     print("Successfully connected to " + secrets["ssid"] + ".")
     print("IP address: ", wifi.radio.ipv4_address)
 
-# Select a day to request
-requested_day = select_day(1500, 0)
-
-# Request page 0's weather data for the requested day
-current_page = 0
-weather_data = request_weather_data(requested_day, current_page)
+try:
+    # Get the mountain's weather JSON
+    mountain_json = get_json_url("https://mtnpowder.com/feed?resortId=4")
+    # Select a day to request
+    requested_day = select_day(1500, 0)
+    # Request page 0's weather data for the requested day
+    current_page = 0
+    weather_data = request_weather_data(requested_day, current_page, mountain_json, True)
+except:
+    magtag.peripherals.neopixels.fill((255, 0, 0))
+    magtag.set_text("\nError requesting the\nweather information.\nRestarting in 10 seconds.")
+    time.sleep(10)
+    microcontroller.reset()
 
 # Write the weather data to the screen
 set_weather_data(
@@ -330,7 +370,10 @@ while True:
     elif button_D15_pressed == True:
         # Request a weather data change if the left button is pressed
         requested_day = select_day(1500, requested_day)
-        weather_data = request_weather_data(requested_day, current_page)
+        # If the current page is 2 and the requested day isn't today, set the page to 1 
+        if current_page == 2 and requested_day != 0:
+            current_page = 1
+        weather_data = request_weather_data(requested_day, current_page, mountain_json, False)
         set_weather_data(
             current_page,
             weather_data[0],
@@ -343,10 +386,11 @@ while True:
         )
         # Restart timer
         timer = 1500
-    elif button_D14_pressed and current_page < 1:
-        # Request a higher page if the current page is less than 1
+    elif button_D14_pressed and current_page < 2 and not (current_page == 1 and requested_day != 0):
+        # Request a higher page if...
+        # The current page is less than 2 and not 1 if the requested day isn't today
         current_page = current_page + 1
-        weather_data = request_weather_data(requested_day, current_page)
+        weather_data = request_weather_data(requested_day, current_page, mountain_json, False)
         set_weather_data(
             current_page,
             weather_data[0],
@@ -361,7 +405,7 @@ while True:
     elif button_D12_pressed and current_page > 0:
         # Request a lower page if the current page is more than 0
         current_page = current_page - 1
-        weather_data = request_weather_data(requested_day, current_page)
+        weather_data = request_weather_data(requested_day, current_page, mountain_json, False)
         set_weather_data(
             current_page,
             weather_data[0],
