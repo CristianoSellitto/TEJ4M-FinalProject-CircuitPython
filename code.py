@@ -1,5 +1,5 @@
 '''
-- By Cristiano
+- Created By Cristiano Sellitto
 - Created December 12th 2023
 - Modified January 2024
 
@@ -20,7 +20,7 @@ from adafruit_magtag.magtag import MagTag
 
 # Reduce the brightness of the LEDs as a way to see when a timer is about to run out
 def led_brightness_timer(timer):
-    if timer == 1500: # Can't use match case for this due to older Python version
+    if timer == 1500: # Can't use match case for this due to older Python version (probably)
         magtag.peripherals.neopixels.brightness = 0.3
     elif timer == 1350:
         magtag.peripherals.neopixels.brightness = 0.275
@@ -53,7 +53,7 @@ def select_day(timer, selected_day):
             "\nselect a day." + 
             "\nPress left to continue." + 
             "\nDay Requesting: +" + str(selected_day)
-            )
+        )
         while True:
             # Button variables
             button_D15_pressed = magtag.peripherals.button_a_pressed # Left button
@@ -123,7 +123,8 @@ def request_weather_data(selected_day, page, json_file, is_first_request):
                 math.ceil(float(json_file.json()["CurrentConditions"]["Base"]["WindChillC"])),
                 json_file.json()["CurrentConditions"]["Base"]["Skies"],
                 None,
-                None
+                None,
+                json_file.json()["OperatingStatus"]
             ]
         elif page == 1:
             # Request today's weather info for page 1
@@ -139,7 +140,8 @@ def request_weather_data(selected_day, page, json_file, is_first_request):
                         float(json_file.json()["SnowReport"]["OpenTerrainHectares"]) /
                         float(json_file.json()["SnowReport"]["TotalTerrainHectares"])
                     ) * 100
-                )
+                ),
+                json_file.json()["OperatingStatus"]
             ]
         elif page == 2:
             # Request today's weather info for page 2
@@ -149,8 +151,9 @@ def request_weather_data(selected_day, page, json_file, is_first_request):
                 json_file.json()["SnowReport"]["TotalOpenParks"],
                 json_file.json()["SnowReport"]["TotalParks"],
                 json_file.json()["SnowReport"]["SeasonTotalCm"],
-                json_file.json()["SnowReport"]["BaseArea"]["Last48HoursCm"],
-                None
+                json_file.json()["SnowReport"]["BaseArea"]["Last24HoursCm"],
+                None,
+                json_file.json()["OperatingStatus"]
             ]
     else:
         # Request weather information for a day in the future
@@ -176,7 +179,8 @@ def request_weather_data(selected_day, page, json_file, is_first_request):
                 math.ceil(float(json_file.json()["Forecast"][day_text]["temp_low_c"])),
                 json_file.json()["Forecast"][day_text]["skies"],
                 None,
-                None
+                None,
+                json_file.json()["OperatingStatus"]
             ]
         elif page == 1:
             # Request future weather info for page 1
@@ -187,7 +191,8 @@ def request_weather_data(selected_day, page, json_file, is_first_request):
                 json_file.json()["Forecast"][day_text]["avewind"]["kph"],
                 json_file.json()["Forecast"][day_text]["avewind"]["dir"],
                 None,
-                None
+                None,
+                json_file.json()["OperatingStatus"]
             ]
     
     # Return the weather data requested
@@ -210,6 +215,7 @@ def set_weather_data(page, is_current_day, date, data_one, data_two, data_three,
     weather_info[4] = data_three
     weather_info[5] = data_four
     weather_info[6] = data_five
+    weather_info[7] = Operating Status (unused in this function)
 
     Formatted as {today} | {future} or {all}
     Ex. data_one = One | Two
@@ -237,7 +243,7 @@ def set_weather_data(page, is_current_day, date, data_one, data_two, data_three,
         data_one = Total Open Parks                | Non-existant
         data_two = Total Parks                     | Non-existant
         data_three = Season Total Snow (cm)        | Non-existant
-        data_four = Snow in the Last 48 Hours (cm) | Non-existant
+        data_four = Snow in the Last 24 Hours (cm) | Non-existant
     '''
 
     # Page 2 for today
@@ -246,7 +252,7 @@ def set_weather_data(page, is_current_day, date, data_one, data_two, data_three,
             "\nPage " + str(page + 1) + " for " + str(date) +
             "\nParks: " + str(data_one) + "/" + str(data_two) +
             "\nSeason Total: " + str(data_three) + " cm" +
-            "\n48 Hour: " + str(data_four) + " cm"
+            "\n24 Hour: " + str(data_four) + " cm"
         )
     # Page 1 for today
     elif page == 1 and is_current_day == True:
@@ -341,6 +347,11 @@ except:
     magtag.set_text("\nError requesting the\nweather information.\nRestarting in 10 seconds.")
     time.sleep(10)
     microcontroller.reset()
+
+# Write Tremblant's operating status to the screen
+magtag.peripherals.neopixels.fill((0, 255, 0))
+magtag.set_text("\nTremblant Status: " + weather_data[7])
+time.sleep(5)
 
 # Write the weather data to the screen
 set_weather_data(
