@@ -104,7 +104,7 @@ def get_json_url(mountain_url):
     # Return the JSON file
     return mountain_info
 
-# Get Mount Tremblant Weather information
+# Get Tremblant Weather information
 def request_weather_data(selected_day, page, json_file, is_first_request):
     # Set the colour of the LEDs to purple
     magtag.peripherals.neopixels.brightness = 0.3
