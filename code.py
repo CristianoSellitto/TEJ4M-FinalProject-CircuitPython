@@ -45,7 +45,7 @@ def led_brightness_timer(timer):
 
 # Select a day's weather data to request
 def select_day(timer, selected_day):
-    # Get Mount Tremblant Weather JSON file
+    # Get Tremblant Weather JSON file
     try:
         # Prompt the device to select a day to request
         magtag.set_text(
