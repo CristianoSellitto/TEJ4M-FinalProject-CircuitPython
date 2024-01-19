@@ -240,10 +240,10 @@ def set_weather_data(page, is_current_day, date, data_one, data_two, data_three,
         data_five = Open Terrain Percent | None
 
     Page 2:
-        data_one = Total Open Parks                | Non-existant
-        data_two = Total Parks                     | Non-existant
-        data_three = Season Total Snow (cm)        | Non-existant
-        data_four = Snow in the Last 24 Hours (cm) | Non-existant
+        data_one = Total Open Parks                | Non-existent
+        data_two = Total Parks                     | Non-existent
+        data_three = Season Total Snow (cm)        | Non-existent
+        data_four = Snow in the Last 24 Hours (cm) | Non-existent
     '''
 
     # Page 2 for today
