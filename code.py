@@ -135,7 +135,7 @@ def request_weather_data(selected_day, page, json_file, is_first_request):
                 json_file.json()["SnowReport"]["TotalTrails"],
                 json_file.json()["SnowReport"]["TotalOpenLifts"],
                 json_file.json()["SnowReport"]["TotalLifts"],
-                math.ceil(
+                math.floor(
                     (
                         float(json_file.json()["SnowReport"]["OpenTerrainHectares"]) /
                         float(json_file.json()["SnowReport"]["TotalTerrainHectares"])
